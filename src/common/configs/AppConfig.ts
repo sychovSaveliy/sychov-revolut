@@ -6,6 +6,7 @@ export default {
     CurrencyAccount.EUR,
     CurrencyAccount.GBP
   ],
+  defaultCurrencyAccount: CurrencyAccount.USD,
   fxApi: {
     domain: 'https://api.fastforex.io'
   }
