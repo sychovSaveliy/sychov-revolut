@@ -1,18 +1,18 @@
 import { Grid } from '@material-ui/core';
 import React from 'react';
-import { CurrencyAccount } from '../../../common/constants';
+import { useCurrentAccount } from '../hooks/ExchangeHooks';
 import { ExchangeDirection } from '../index';
 
 interface SellBuyTitleProps {
   exDirection: ExchangeDirection;
-  currentCurrencyAccount: CurrencyAccount;
 }
 
 const SellBuyTitle: React.FC<SellBuyTitleProps> = (props) => {
+  const currentAccount = useCurrentAccount();
   const title = props.exDirection === ExchangeDirection.FirstToSecond ? 'Sell' : 'Buy';
   return (
     <Grid item xs={12}>
-      {title} {props.currentCurrencyAccount}
+      {title} {currentAccount}
     </Grid>
   );
 };

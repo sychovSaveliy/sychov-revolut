@@ -1,10 +1,10 @@
 import { CurrencyAccount } from '../constants';
 
 export interface FFCurrencyResults {
-  [key: CurrencyAccount]: number;
+  [key: string]: number;
 }
 
-export interface FFApiResponse {
+export interface FFMultiFetchModel {
   base: CurrencyAccount;
   ms: number;
   results: FFCurrencyResults;

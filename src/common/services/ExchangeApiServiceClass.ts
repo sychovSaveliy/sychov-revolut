@@ -1,11 +1,11 @@
 import AppConfig from '../configs/AppConfig';
 import { CurrencyAccount } from '../constants';
-import { FFApiResponse } from '../typings/ExchangeApiTypes';
+import { FFMultiFetchModel } from '../typings/ExchangeApiTypes';
 import { ApiServiceClass } from './ApiService';
 import { IExchangeApiService } from './interfaces/IExchangeApiService';
 
 export class ExchangeApiServiceClass extends ApiServiceClass implements IExchangeApiService {
-  fetchMulti(base: CurrencyAccount): Promise<FFApiResponse> {
+  fetchMulti(base: CurrencyAccount): Promise<FFMultiFetchModel> {
     const multiUrl = new URL(`${AppConfig.fxApi.domain}/fetch-multi`);
 
     multiUrl.searchParams.append('api_key', '184dd26b7e-40272d77ff-qyjq5f');
