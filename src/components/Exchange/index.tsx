@@ -1,15 +1,16 @@
-import { Grid, Paper } from '@material-ui/core';
+import { Button, Card, CardActions, CardContent, Grid, Paper } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import AppConfig from '../../common/configs/AppConfig';
 import { CurrencyAccount } from '../../common/constants';
 import { SRStyles } from '../../common/utils/SRStyles';
 import ExchangeStore from '../../stores/ExchangeStore';
-import AmountInput from './AmountInput';
-import RatesRatio from './RatesRatio';
-import SellBuyTitle from './SellBuyTitle';
+import AmountInput from './components/AmountInput';
+import ExchangeDirectionSwitcher from './components/ExchangeDirectionSwitcher';
+import RatesRatio from './components/RatesRatio';
+import SellBuyTitle from './components/SellBuyTitle';
 
 export interface IParticipants {
   firstAccount: CurrencyAccount;
@@ -22,8 +23,9 @@ export enum ExchangeDirection {
 }
 
 const useStyles = makeStyles({
-  firstParticipantRoot: {},
-  secondParticipantRoot: {}
+  sellActionButton: {
+    textTransform: 'initial'
+  }
 });
 
 const Exchange: React.FC = observer(() => {
@@ -41,7 +43,8 @@ const Exchange: React.FC = observer(() => {
 
   useEffect(() => {
     exchangeStore.loadFFRates();
-    return () => {};
+    return () => {
+    };
   }, []);
 
   useEffect(() => {
@@ -54,21 +57,36 @@ const Exchange: React.FC = observer(() => {
     setParticipants(participantsOrder);
   }, [exDirection]);
 
+  const onChangeDirection = useCallback(() => {
+    const newExDirection = exDirection === ExchangeDirection.FirstToSecond
+      ? ExchangeDirection.SecondToFirst
+      : ExchangeDirection.FirstToSecond;
+    setExDirection(newExDirection);
+  }, [exDirection]);
+
   return (
     <Grid container item xs={6}>
-      first - {firstAccount}
-      second - {secondAccount}
-      <SellBuyTitle
-        exDirection={exDirection}
-      />
-      <RatesRatio
-        ffResults={exchangeStore.ffMultiFetchModel?.results}
-        secondCurrencyAccount={secondAccount}
-      />
-      <Grid container direction={'column'}>
-        <AmountInput balance={150} currency={firstAccount} />
-        <AmountInput balance={250} currency={secondAccount} />
-      </Grid>
+      <Card>
+        <CardContent>
+          <SellBuyTitle
+            exDirection={exDirection}
+          />
+          <RatesRatio
+            ffResults={exchangeStore.ffMultiFetchModel?.results}
+            secondCurrencyAccount={secondAccount}
+          />
+          <Grid container direction={'column'} alignItems={'center'}>
+            <AmountInput balance={150} currency={firstAccount}/>
+            <ExchangeDirectionSwitcher onClick={onChangeDirection} />
+            <AmountInput balance={250} currency={secondAccount}/>
+          </Grid>
+        </CardContent>
+        <CardActions>
+          <Button className={classes.sellActionButton} size="small" variant="contained" color="primary">
+            Sell {firstAccount} for {secondAccount}
+          </Button>
+        </CardActions>
+      </Card>
     </Grid>
   );
 });
