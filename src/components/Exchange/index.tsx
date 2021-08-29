@@ -6,10 +6,12 @@ import React, { useCallback, useContext, useEffect, useState } from 'react';
 import AppConfig from '../../common/configs/AppConfig';
 import { CurrencyAccount } from '../../common/constants';
 import { SRStyles } from '../../common/utils/SRStyles';
+import BalanceStore from '../../stores/BalanceStore';
 import ExchangeStore from '../../stores/ExchangeStore';
 import AmountInput from './components/AmountInput';
 import ExchangeDirectionSwitcher from './components/ExchangeDirectionSwitcher';
 import RatesRatio from './components/RatesRatio';
+import SellBuyButton from './components/SellBuyButton';
 import SellBuyTitle from './components/SellBuyTitle';
 
 export interface IParticipants {
@@ -23,8 +25,11 @@ export enum ExchangeDirection {
 }
 
 const useStyles = makeStyles({
-  sellActionButton: {
-    textTransform: 'initial'
+  exDirectionRotated: {
+    transform: 'rotate(180deg)'
+  },
+  cardActionsRoot: {
+    justifyContent: 'center'
   }
 });
 
@@ -33,19 +38,26 @@ const Exchange: React.FC = observer(() => {
   const classes = useStyles();
   // Store
   const exchangeStore = useContext(ExchangeStore);
+  const balanceStore = useContext(BalanceStore);
   // State
   const [participants, setParticipants] = useState<CurrencyAccount[]>([
     exchangeStore.currentCurrencyAccount,
     exchangeStore.secondCurrencyAccount
   ]);
-  const [exDirection, setExDirection] = useState<ExchangeDirection>(ExchangeDirection.FirstToSecond);
+  // Controllers
+  const currentAccountBalance = balanceStore.getBalance(exchangeStore.currentCurrencyAccount);
+  const secondAccountBalance = balanceStore.getBalance(exchangeStore.secondCurrencyAccount);
+  const exDirectionInit = currentAccountBalance > 0 ? ExchangeDirection.FirstToSecond : ExchangeDirection.SecondToFirst;
+  const [exDirection, setExDirection] = useState<ExchangeDirection>(exDirectionInit);
   const [firstAccount, secondAccount] = participants;
 
+  // useEffects
   useEffect(() => {
     exchangeStore.loadFFRates();
     return () => {
+      exchangeStore.resetStore();
     };
-  }, []);
+  }, [exchangeStore.currentCurrencyAccount, exchangeStore.secondCurrencyAccount]);
 
   useEffect(() => {
     let participantsOrder = [firstAccount, secondAccount];
@@ -64,6 +76,14 @@ const Exchange: React.FC = observer(() => {
     setExDirection(newExDirection);
   }, [exDirection]);
 
+  const exDirectionClasses = exDirection === ExchangeDirection.SecondToFirst
+    ? classes.exDirectionRotated
+    : undefined;
+
+  const getOnAmountChange = (currency: CurrencyAccount) => (value: number) => {
+    console.log(currency, value);
+  };
+
   return (
     <Grid container item xs={6}>
       <Card>
@@ -76,15 +96,31 @@ const Exchange: React.FC = observer(() => {
             secondCurrencyAccount={secondAccount}
           />
           <Grid container direction={'column'} alignItems={'center'}>
-            <AmountInput balance={150} currency={firstAccount}/>
-            <ExchangeDirectionSwitcher onClick={onChangeDirection} />
-            <AmountInput balance={250} currency={secondAccount}/>
+            <AmountInput
+              balance={currentAccountBalance}
+              currency={exchangeStore.currentCurrencyAccount}
+              isRecipient={exDirection === ExchangeDirection.SecondToFirst}
+              onChange={getOnAmountChange(exchangeStore.currentCurrencyAccount)}
+            />
+            <ExchangeDirectionSwitcher
+              classes={{ root: exDirectionClasses }}
+              onClick={onChangeDirection}
+            />
+            <AmountInput
+              balance={secondAccountBalance}
+              currency={exchangeStore.secondCurrencyAccount}
+              isRecipient={exDirection === ExchangeDirection.FirstToSecond}
+              onChange={getOnAmountChange(exchangeStore.secondCurrencyAccount)}
+            />
           </Grid>
         </CardContent>
-        <CardActions>
-          <Button className={classes.sellActionButton} size="small" variant="contained" color="primary">
-            Sell {firstAccount} for {secondAccount}
-          </Button>
+        <CardActions classes={{ root: classes.cardActionsRoot }}>
+          <SellBuyButton
+            currentAccount={exchangeStore.currentCurrencyAccount}
+            secondAccount={exchangeStore.secondCurrencyAccount}
+            exDirection={exDirection}
+            disabled={true}
+          />
         </CardActions>
       </Card>
     </Grid>
