@@ -59,8 +59,8 @@ const Exchange: React.FC = observer(() => {
     exchangeStore.updateCalculations(currency, value, exDirection);
   }, [exchangeStore.updateCalculations, exDirection]);
 
-  const getOnAccountChange = useCallback((currency: CurrencyAccount) => (accountName: string) => {
-    if (currency === exchangeStore.currentCurrencyAccount) {
+  const getOnAccountChange = (currency: CurrencyAccount, accountName: string) => {
+    if (currency === exchangeStore.currentCurrencyAccount && accountName !== exchangeStore.secondCurrencyAccount) {
       const newCurrencyAccount = accountName as CurrencyAccount;
       exchangeStore.setCurrentAccount(newCurrencyAccount);
       exchangeStore.loadFFRates(newCurrencyAccount);
@@ -68,10 +68,10 @@ const Exchange: React.FC = observer(() => {
       return;
     }
 
-    if (currency === exchangeStore.secondCurrencyAccount) {
+    if (currency === exchangeStore.secondCurrencyAccount && accountName !== exchangeStore.currentCurrencyAccount) {
       exchangeStore.setSecondAccount(accountName as CurrencyAccount);
     }
-  }, [exchangeStore.currentCurrencyAccount, exchangeStore.secondCurrencyAccount]);
+  };
 
   useEffect(() => {
     if (exDirection === ExchangeDirection.FirstToSecond) {
@@ -110,6 +110,8 @@ const Exchange: React.FC = observer(() => {
     balanceStore.applyCalculations(firstPayload, secondPayload, coefficient);
   }, [exDirection]);
 
+  const onRestrictedItemClick = onChangeDirection;
+
   return (
     <Grid item xs>
       <Card className={classes.root}>
@@ -129,7 +131,9 @@ const Exchange: React.FC = observer(() => {
               isRecipient={isFirstRecipient}
               onChange={getOnAmountChange(exchangeStore.currentCurrencyAccount)}
               isExceedBalanceVisible={isFirstExceedBalance}
-              onAccountChange={getOnAccountChange(exchangeStore.currentCurrencyAccount)}
+              onAccountChange={accountName => getOnAccountChange(exchangeStore.currentCurrencyAccount, accountName)}
+              restrictedAccountList={[exchangeStore.secondCurrencyAccount]}
+              onRestrictedItemClick={onRestrictedItemClick}
             />
             <ExchangeDirectionSwitcher
               classes={{ root: exDirectionClasses }}
@@ -142,7 +146,9 @@ const Exchange: React.FC = observer(() => {
               isRecipient={isSecondRecipient}
               onChange={getOnAmountChange(exchangeStore.secondCurrencyAccount)}
               isExceedBalanceVisible={isSecondExceedBalance}
-              onAccountChange={getOnAccountChange(exchangeStore.secondCurrencyAccount)}
+              onAccountChange={accountName => getOnAccountChange(exchangeStore.secondCurrencyAccount, accountName)}
+              restrictedAccountList={[exchangeStore.currentCurrencyAccount]}
+              onRestrictedItemClick={onRestrictedItemClick}
             />
           </Grid>
         </CardContent>

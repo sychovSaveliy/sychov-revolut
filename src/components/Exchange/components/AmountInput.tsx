@@ -1,11 +1,14 @@
 import { Grid, Input, InputLabel, Paper } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import clsx from 'clsx';
+import { observer } from 'mobx-react-lite';
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { CurrencyAccount } from '../../../common/constants';
+import Localization from '../../../common/services/Localization';
 import ValidationService from '../../../common/services/ValidationService';
 import { SRStyles } from '../../../common/utils/SRStyles';
 import BalanceStore from '../../../stores/BalanceStore';
+import ExchangeStore from '../../../stores/ExchangeStore';
 import AccountSwitcher from './AccountSwitcher';
 
 interface AmountInputProps {
@@ -16,6 +19,8 @@ interface AmountInputProps {
   onAccountChange: (name: string) => void;
   isRecipient: boolean;
   isExceedBalanceVisible: boolean;
+  restrictedAccountList: string[];
+  onRestrictedItemClick: () => void;
   classes?: {
     root: string;
   };
@@ -45,11 +50,15 @@ const useStyles = makeStyles({
     textAlign: 'right'
   },
   exceedsBalance: {
-    color: SRStyles.color.primaryRed
+    color: SRStyles.color.primaryRed,
+    userSelect: 'none'
+  },
+  balanceLabel: {
+    userSelect: 'none'
   }
 });
 
-const AmountInput: React.FC<AmountInputProps> = props => {
+const AmountInput: React.FC<AmountInputProps> = observer(props => {
   if (props.balance === undefined) {
     return null;
   }
@@ -114,8 +123,10 @@ const AmountInput: React.FC<AmountInputProps> = props => {
       <Grid container direction={'row'} justifyContent={'space-between'}>
         <Grid container direction={'column'} item xs={4}>
           <AccountSwitcher
-            label={props.currency}
+            account={props.currency}
             list={balanceStore.getCurrencyList()}
+            restrictedList={props.restrictedAccountList}
+            onRestrictedItemClick={props.onRestrictedItemClick}
             onChange={onAccountChange}
           />
         </Grid>
@@ -133,20 +144,20 @@ const AmountInput: React.FC<AmountInputProps> = props => {
       </Grid>
       <Grid container direction={'row'} justifyContent={'space-between'}>
         <Grid item xs>
-          <span>
-            Balance: {props.balance.toFixed(2)}
+          <span className={classes.balanceLabel}>
+            {Localization.getString('AmountInput.BalanceLabel')} {props.balance.toFixed(2)}
           </span>
         </Grid>
         <Grid className={classes.exceedsBalanceContainer} item xs>
           {props.isExceedBalanceVisible && (
             <span className={classes.exceedsBalance}>
-              exceeds balance
+              {Localization.getString('AmountInput.ExceedBalance')}
             </span>
           )}
         </Grid>
       </Grid>
     </Paper>
   );
-};
+});
 
 export default AmountInput;

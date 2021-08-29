@@ -2,6 +2,7 @@ import { Button } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import React from 'react';
 import { CurrencyAccount } from '../../../common/constants';
+import Localization from '../../../common/services/Localization';
 import { ExchangeDirection } from '../enums';
 
 interface SellBuyButtonProps {
@@ -21,12 +22,12 @@ const useStyles = makeStyles({
 const SellBuyButton: React.FC<SellBuyButtonProps> = props => {
   const classes = useStyles();
 
-  let buttonTitleFirstPart = 'Sell';
-  let buttonTitleSecondPart = 'for';
+  let buttonTitleFirstPart = Localization.getString('ExchangeButton.LabelFirstPart');
+  let buttonTitleSecondPart = Localization.getString('ExchangeButton.LabelSecondPart');
 
   if (props.exDirection === ExchangeDirection.SecondToFirst) {
-    buttonTitleFirstPart = 'Buy';
-    buttonTitleSecondPart = 'with';
+    buttonTitleFirstPart = Localization.getString('ExchangeButton.LabelBuyFirstPart');
+    buttonTitleSecondPart = Localization.getString('ExchangeButton.LabelBuySecondPart');
   }
 
   return (
