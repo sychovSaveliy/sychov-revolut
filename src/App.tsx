@@ -1,11 +1,12 @@
+import { Grid } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import React from 'react';
 import { SRStyles } from './common/utils/SRStyles';
+import AccountsMock from './components/AccountsMock';
 import Exchange from './components/Exchange';
 
 const useStyles = makeStyles({
   root: {
-    height: '100%',
     backgroundColor: SRStyles.color.grey
   }
 });
@@ -13,9 +14,10 @@ const useStyles = makeStyles({
 function App() {
   const classes = useStyles();
   return (
-    <div className={classes.root}>
+    <Grid className={classes.root} container direction={'row'} spacing={4}>
       <Exchange />
-    </div>
+      <AccountsMock />
+    </Grid>
   );
 }
 

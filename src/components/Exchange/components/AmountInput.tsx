@@ -1,16 +1,21 @@
-import { Grid, Input, Paper } from '@material-ui/core';
+import { Grid, Input, InputLabel, Paper } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import clsx from 'clsx';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { CurrencyAccount } from '../../../common/constants';
 import ValidationService from '../../../common/services/ValidationService';
 import { SRStyles } from '../../../common/utils/SRStyles';
+import BalanceStore from '../../../stores/BalanceStore';
+import AccountSwitcher from './AccountSwitcher';
 
 interface AmountInputProps {
   balance: number | undefined;
   currency: CurrencyAccount;
+  value: number;
   onChange: (event: number) => void;
+  onAccountChange: (name: string) => void;
   isRecipient: boolean;
+  isExceedBalanceVisible: boolean;
   classes?: {
     root: string;
   };
@@ -36,9 +41,11 @@ const useStyles = makeStyles({
       }
     }
   },
-  currencyTitle: {
-    fontSize: SRStyles.fontSize.size18,
-    fontWeight: SRStyles.fontWeight.bold
+  exceedsBalanceContainer: {
+    textAlign: 'right'
+  },
+  exceedsBalance: {
+    color: SRStyles.color.primaryRed
   }
 });
 
@@ -47,6 +54,7 @@ const AmountInput: React.FC<AmountInputProps> = props => {
     return null;
   }
   const classes = useStyles();
+  const balanceStore = useContext(BalanceStore);
   const [value, setValue] = useState<string>('');
   const [sign, setSign] = useState<'+' | '-'>(() => props.isRecipient ? Sign.Plus : Sign.Minus);
 
@@ -79,32 +87,39 @@ const AmountInput: React.FC<AmountInputProps> = props => {
       setValue(newValue);
       props.onChange(Number(newValue.slice(signIndex + 1)));
     }
-  }, []);
+  }, [sign]);
 
   useEffect(() => {
-    const newSign = props.isRecipient ? Sign.Plus : Sign.Minus;
-    const oldSignIndex = value.indexOf(props.isRecipient ? Sign.Minus : Sign.Plus);
-
-    setSign(newSign);
-    if (value === '') {
+    if (props.value === 0) {
+      setValue('');
       return;
     }
-    setValue(newSign + value.slice(oldSignIndex + 1));
-  }, [props.isRecipient]);
+    const newValue = String(props.value);
+    const newSign = props.isRecipient ? Sign.Plus : Sign.Minus;
+    const oldSignIndex = newValue.indexOf(props.isRecipient ? Sign.Minus : Sign.Plus);
+
+    setSign(newSign);
+    if (newValue === '') {
+      return;
+    }
+    setValue(newSign + newValue.slice(oldSignIndex + 1));
+  }, [props.isRecipient, props.value]);
+
+  const onAccountChange = useCallback((value: string) => {
+    props.onAccountChange(value);
+  }, []);
 
   return (
     <Paper className={clsx(classes.participantRoot, props.classes?.root)}>
-      <Grid container direction={'row'}>
+      <Grid container direction={'row'} justifyContent={'space-between'}>
         <Grid container direction={'column'} item xs={4}>
-          <span className={classes.currencyTitle}>
-            {props.currency}
-          </span>
-          <span>
-            Balance: {props.balance}
-          </span>
+          <AccountSwitcher
+            label={props.currency}
+            list={balanceStore.getCurrencyList()}
+            onChange={onAccountChange}
+          />
         </Grid>
-        <Grid item xs />
-        <Grid container item xs={5} justifyContent={'flex-end'}>
+        <Grid container item xs={8} justifyContent={'flex-end'}>
           <Input
             className={classes.inputField}
             type="string"
@@ -112,7 +127,22 @@ const AmountInput: React.FC<AmountInputProps> = props => {
             onChange={event => onChange(event.target.value)}
             onBlur={onBlur}
             value={value}
+            disableUnderline={true}
           />
+        </Grid>
+      </Grid>
+      <Grid container direction={'row'} justifyContent={'space-between'}>
+        <Grid item xs>
+          <span>
+            Balance: {props.balance.toFixed(2)}
+          </span>
+        </Grid>
+        <Grid className={classes.exceedsBalanceContainer} item xs>
+          {props.isExceedBalanceVisible && (
+            <span className={classes.exceedsBalance}>
+              exceeds balance
+            </span>
+          )}
         </Grid>
       </Grid>
     </Paper>

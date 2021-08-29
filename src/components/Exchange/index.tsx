@@ -1,30 +1,21 @@
-import { Button, Card, CardActions, CardContent, Grid, Paper } from '@material-ui/core';
+import { Card, CardActions, CardContent, Grid } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import AppConfig from '../../common/configs/AppConfig';
 import { CurrencyAccount } from '../../common/constants';
-import { SRStyles } from '../../common/utils/SRStyles';
-import BalanceStore from '../../stores/BalanceStore';
+import BalanceStore, { CalculationsPayload } from '../../stores/BalanceStore';
 import ExchangeStore from '../../stores/ExchangeStore';
 import AmountInput from './components/AmountInput';
 import ExchangeDirectionSwitcher from './components/ExchangeDirectionSwitcher';
 import RatesRatio from './components/RatesRatio';
 import SellBuyButton from './components/SellBuyButton';
 import SellBuyTitle from './components/SellBuyTitle';
-
-export interface IParticipants {
-  firstAccount: CurrencyAccount;
-  secondAccount: CurrencyAccount;
-}
-
-export enum ExchangeDirection {
-  FirstToSecond,
-  SecondToFirst,
-}
+import { ExchangeDirection } from './enums';
 
 const useStyles = makeStyles({
+  root: {
+    width: 400
+  },
   exDirectionRotated: {
     transform: 'rotate(180deg)'
   },
@@ -39,17 +30,11 @@ const Exchange: React.FC = observer(() => {
   // Store
   const exchangeStore = useContext(ExchangeStore);
   const balanceStore = useContext(BalanceStore);
-  // State
-  const [participants, setParticipants] = useState<CurrencyAccount[]>([
-    exchangeStore.currentCurrencyAccount,
-    exchangeStore.secondCurrencyAccount
-  ]);
   // Controllers
   const currentAccountBalance = balanceStore.getBalance(exchangeStore.currentCurrencyAccount);
   const secondAccountBalance = balanceStore.getBalance(exchangeStore.secondCurrencyAccount);
   const exDirectionInit = currentAccountBalance > 0 ? ExchangeDirection.FirstToSecond : ExchangeDirection.SecondToFirst;
   const [exDirection, setExDirection] = useState<ExchangeDirection>(exDirectionInit);
-  const [firstAccount, secondAccount] = participants;
 
   // useEffects
   useEffect(() => {
@@ -57,17 +42,7 @@ const Exchange: React.FC = observer(() => {
     return () => {
       exchangeStore.resetStore();
     };
-  }, [exchangeStore.currentCurrencyAccount, exchangeStore.secondCurrencyAccount]);
-
-  useEffect(() => {
-    let participantsOrder = [firstAccount, secondAccount];
-    if (exDirection === ExchangeDirection.SecondToFirst) {
-      // or participantsOrder.reverse()
-      participantsOrder = [secondAccount, firstAccount];
-    }
-
-    setParticipants(participantsOrder);
-  }, [exDirection]);
+  }, []);
 
   const onChangeDirection = useCallback(() => {
     const newExDirection = exDirection === ExchangeDirection.FirstToSecond
@@ -80,27 +55,81 @@ const Exchange: React.FC = observer(() => {
     ? classes.exDirectionRotated
     : undefined;
 
-  const getOnAmountChange = (currency: CurrencyAccount) => (value: number) => {
-    console.log(currency, value);
-  };
+  const getOnAmountChange = useCallback((currency: CurrencyAccount) => (value: number) => {
+    exchangeStore.updateCalculations(currency, value, exDirection);
+  }, [exchangeStore.updateCalculations, exDirection]);
+
+  const getOnAccountChange = useCallback((currency: CurrencyAccount) => (accountName: string) => {
+    if (currency === exchangeStore.currentCurrencyAccount) {
+      const newCurrencyAccount = accountName as CurrencyAccount;
+      exchangeStore.setCurrentAccount(newCurrencyAccount);
+      exchangeStore.loadFFRates(newCurrencyAccount);
+
+      return;
+    }
+
+    if (currency === exchangeStore.secondCurrencyAccount) {
+      exchangeStore.setSecondAccount(accountName as CurrencyAccount);
+    }
+  }, [exchangeStore.currentCurrencyAccount, exchangeStore.secondCurrencyAccount]);
+
+  useEffect(() => {
+    if (exDirection === ExchangeDirection.FirstToSecond) {
+      exchangeStore.updateCalculations(exchangeStore.currentCurrencyAccount, exchangeStore.firstAccountCalculation, exDirection);
+    } else {
+      exchangeStore.updateCalculations(exchangeStore.secondCurrencyAccount, exchangeStore.secondAccountCalculation, exDirection);
+    }
+  }, [exchangeStore.ffMultiFetchModel?.results]);
+
+  const isFirstRecipient = exDirection === ExchangeDirection.SecondToFirst;
+  const isSecondRecipient = exDirection === ExchangeDirection.FirstToSecond;
+
+  const isFirstExceedBalance = !isFirstRecipient && (currentAccountBalance - exchangeStore.firstAccountCalculation) < 0;
+  const isSecondExceedBalance = !isSecondRecipient && (secondAccountBalance - exchangeStore.secondAccountCalculation) < 0;
+
+  const isBuySellButtonDisabled = !(exchangeStore.firstAccountCalculation || exchangeStore.secondAccountCalculation) ||
+    isFirstExceedBalance || isSecondExceedBalance;
+
+  const onSellBuyButtonClick = useCallback(() => {
+    if (isFirstExceedBalance || isSecondExceedBalance) {
+      return console.warn('Balance exceed');
+    }
+    const firstPayload: CalculationsPayload = {
+      currency: exchangeStore.currentCurrencyAccount,
+      amount: exchangeStore.firstAccountCalculation
+    };
+    const secondPayload: CalculationsPayload = {
+      currency: exchangeStore.secondCurrencyAccount,
+      amount: exchangeStore.secondAccountCalculation
+    };
+    let coefficient: 1 | -1 = 1;
+    if (exDirection === ExchangeDirection.SecondToFirst) {
+      coefficient = -1;
+    }
+
+    balanceStore.applyCalculations(firstPayload, secondPayload, coefficient);
+  }, [exDirection]);
 
   return (
-    <Grid container item xs={6}>
-      <Card>
+    <Grid item xs>
+      <Card className={classes.root}>
         <CardContent>
           <SellBuyTitle
             exDirection={exDirection}
           />
           <RatesRatio
             ffResults={exchangeStore.ffMultiFetchModel?.results}
-            secondCurrencyAccount={secondAccount}
+            secondCurrencyAccount={exchangeStore.secondCurrencyAccount}
           />
           <Grid container direction={'column'} alignItems={'center'}>
             <AmountInput
               balance={currentAccountBalance}
               currency={exchangeStore.currentCurrencyAccount}
-              isRecipient={exDirection === ExchangeDirection.SecondToFirst}
+              value={exchangeStore.firstAccountCalculation}
+              isRecipient={isFirstRecipient}
               onChange={getOnAmountChange(exchangeStore.currentCurrencyAccount)}
+              isExceedBalanceVisible={isFirstExceedBalance}
+              onAccountChange={getOnAccountChange(exchangeStore.currentCurrencyAccount)}
             />
             <ExchangeDirectionSwitcher
               classes={{ root: exDirectionClasses }}
@@ -109,8 +138,11 @@ const Exchange: React.FC = observer(() => {
             <AmountInput
               balance={secondAccountBalance}
               currency={exchangeStore.secondCurrencyAccount}
-              isRecipient={exDirection === ExchangeDirection.FirstToSecond}
+              value={exchangeStore.secondAccountCalculation}
+              isRecipient={isSecondRecipient}
               onChange={getOnAmountChange(exchangeStore.secondCurrencyAccount)}
+              isExceedBalanceVisible={isSecondExceedBalance}
+              onAccountChange={getOnAccountChange(exchangeStore.secondCurrencyAccount)}
             />
           </Grid>
         </CardContent>
@@ -119,7 +151,8 @@ const Exchange: React.FC = observer(() => {
             currentAccount={exchangeStore.currentCurrencyAccount}
             secondAccount={exchangeStore.secondCurrencyAccount}
             exDirection={exDirection}
-            disabled={true}
+            disabled={isBuySellButtonDisabled}
+            onClick={onSellBuyButtonClick}
           />
         </CardActions>
       </Card>

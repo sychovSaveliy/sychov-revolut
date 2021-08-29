@@ -2,13 +2,14 @@ import { Button } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import React from 'react';
 import { CurrencyAccount } from '../../../common/constants';
-import { ExchangeDirection } from '../index';
+import { ExchangeDirection } from '../enums';
 
 interface SellBuyButtonProps {
   currentAccount: CurrencyAccount;
   secondAccount: CurrencyAccount;
   exDirection: ExchangeDirection;
   disabled?: boolean;
+  onClick: () => void;
 }
 
 const useStyles = makeStyles({
@@ -35,6 +36,7 @@ const SellBuyButton: React.FC<SellBuyButtonProps> = props => {
       variant="contained"
       color="primary"
       disabled={props.disabled}
+      onClick={props.onClick}
     >
       {buttonTitleFirstPart} {props.currentAccount} {buttonTitleSecondPart} {props.secondAccount}
     </Button>
