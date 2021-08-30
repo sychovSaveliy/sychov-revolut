@@ -56,7 +56,7 @@ const Exchange: React.FC = observer(() => {
     : undefined;
 
   const getOnAmountChange = useCallback((currency: CurrencyAccount) => (value: number) => {
-    exchangeStore.updateCalculations(currency, value, exDirection);
+    exchangeStore.updateCalculations(currency, value);
   }, [exchangeStore.updateCalculations, exDirection]);
 
   const getOnAccountChange = (currency: CurrencyAccount, accountName: string) => {
@@ -69,15 +69,17 @@ const Exchange: React.FC = observer(() => {
     }
 
     if (currency === exchangeStore.secondCurrencyAccount && accountName !== exchangeStore.currentCurrencyAccount) {
-      exchangeStore.setSecondAccount(accountName as CurrencyAccount);
+      const newCurrencyAccount = accountName as CurrencyAccount;
+      exchangeStore.setSecondAccount(newCurrencyAccount);
+      exchangeStore.updateCalculations(exchangeStore.currentCurrencyAccount, exchangeStore.firstAccountCalculation);
     }
   };
 
   useEffect(() => {
     if (exDirection === ExchangeDirection.FirstToSecond) {
-      exchangeStore.updateCalculations(exchangeStore.currentCurrencyAccount, exchangeStore.firstAccountCalculation, exDirection);
+      exchangeStore.updateCalculations(exchangeStore.currentCurrencyAccount, exchangeStore.firstAccountCalculation);
     } else {
-      exchangeStore.updateCalculations(exchangeStore.secondCurrencyAccount, exchangeStore.secondAccountCalculation, exDirection);
+      exchangeStore.updateCalculations(exchangeStore.secondCurrencyAccount, exchangeStore.secondAccountCalculation);
     }
   }, [exchangeStore.ffMultiFetchModel?.results]);
 

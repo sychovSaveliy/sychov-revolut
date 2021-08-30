@@ -2,7 +2,7 @@ import { action, makeAutoObservable, observable } from 'mobx';
 import { createContext } from 'react';
 import AppConfig from '../common/configs/AppConfig';
 import { CurrencyAccount } from '../common/constants';
-import ExchangeApiService, { ExchangeApiServiceClass } from '../common/services/ExchangeApiServiceClass';
+import ExchangeApiService, { ExchangeApiServiceClass } from '../common/services/ExchangeApiService';
 import { FFMultiFetchModel } from '../common/typings/ExchangeApiTypes';
 import { ExchangeDirection } from '../components/Exchange/enums';
 
@@ -16,7 +16,7 @@ export interface ExchangeStoreState {
 // TODO: move to constants?
 export const DEFAULT_TARGET_ACCOUNT = CurrencyAccount.EUR;
 
-class ExchangeStore implements ExchangeStoreState {
+export class ExchangeStore implements ExchangeStoreState {
   @observable currentCurrencyAccount: CurrencyAccount = AppConfig.defaultCurrencyAccount;
   @observable secondCurrencyAccount: CurrencyAccount = DEFAULT_TARGET_ACCOUNT;
   @observable ffMultiFetchModel: FFMultiFetchModel | null = null;
@@ -49,21 +49,24 @@ class ExchangeStore implements ExchangeStoreState {
     this.secondCurrencyAccount = account;
   }
 
-  @action loadFFRates(currencyAccount?: CurrencyAccount): void {
+  @action loadFFRates(currencyAccount?: CurrencyAccount): Promise<void> {
     const currencyAccountLocal = currencyAccount || this.currentCurrencyAccount;
-    this.exchangeApiService.fetchMulti(currencyAccountLocal).then(ffResp => {
+    return this.exchangeApiService.fetchMulti(currencyAccountLocal).then(ffResp => {
       this.ffMultiFetchModel = ffResp;
     });
   }
 
   @action resetStore(): void {
     this.currentCurrencyAccount = AppConfig.defaultCurrencyAccount;
+    this.secondCurrencyAccount = DEFAULT_TARGET_ACCOUNT;
+    this.firstAccountCalculation = 0;
+    this.secondAccountCalculation = 0;
     this.ffMultiFetchModel = null;
     clearInterval(this.intervalId);
   }
 
   // Calculations
-  @action updateCalculations(currency: CurrencyAccount, value: number, exDirection: ExchangeDirection): void {
+  @action updateCalculations(currency: CurrencyAccount, value: number): void {
     if (value === 0) {
       this.firstAccountCalculation = 0;
       this.secondAccountCalculation = 0;
@@ -74,72 +77,41 @@ class ExchangeStore implements ExchangeStoreState {
     if (currency === this.currentCurrencyAccount) {
       this.firstAccountCalculation = value;
 
-      this.applyFXRatesToSecond(exDirection);
+      this.applyFXRatesToSecond();
       return;
     }
 
     if (currency === this.secondCurrencyAccount) {
       this.secondAccountCalculation = value;
 
-      this.applyFXRatesToFirst(exDirection);
+      this.applyFXRatesToFirst();
       return;
     }
+
     return console.warn(`Wrong currency - ${currency}`);
   }
 
-  private applyFXRatesToFirst(exDirection: ExchangeDirection): void {
+  private applyFXRatesToFirst(): void {
     if (!this.ffMultiFetchModel) {
       return console.warn('No FX rates in the store.');
     }
 
-    let currency;
-    let rateCoefficient;
-    if (exDirection === ExchangeDirection.FirstToSecond) {
-      currency = this.secondCurrencyAccount;
-      rateCoefficient = 1 / this.ffMultiFetchModel.results[currency];
-    } else {
-      currency = this.secondCurrencyAccount;
-      rateCoefficient = 1 / this.ffMultiFetchModel.results[currency];
-    }
+    const currency = this.secondCurrencyAccount;
+    const rateCoefficient = 1 / this.ffMultiFetchModel.results[currency];
 
     this.firstAccountCalculation = this.secondAccountCalculation * rateCoefficient;
   }
 
-  private applyFXRatesToSecond(exDirection: ExchangeDirection): void {
+  private applyFXRatesToSecond(): void {
     if (!this.ffMultiFetchModel) {
       return console.warn('No FX rates in the store.');
     }
 
-    let currency;
-    let rateCoefficient;
-    if (exDirection === ExchangeDirection.FirstToSecond) {
-      currency = this.secondCurrencyAccount;
-      rateCoefficient = this.ffMultiFetchModel.results[currency];
-    } else {
-      currency = this.secondCurrencyAccount;
-      rateCoefficient = this.ffMultiFetchModel.results[currency];
-    }
+    const currency = this.secondCurrencyAccount;
+    const rateCoefficient = this.ffMultiFetchModel.results[currency];
 
     this.secondAccountCalculation = this.firstAccountCalculation * rateCoefficient;
   }
-
-  // v1 - prototype
-  private applyFXRates(exDirection: ExchangeDirection): void {
-    if (!this.ffMultiFetchModel) {
-      return console.warn('No FX rates in the store.');
-    }
-    if (exDirection === ExchangeDirection.FirstToSecond) {
-      if (this.ffMultiFetchModel.base !== this.currentCurrencyAccount) {
-        return console.warn('Wrong currency base - need re-fetch FX rates with new base');
-      }
-      this.secondAccountCalculation = this.firstAccountCalculation * this.ffMultiFetchModel.results[this.secondCurrencyAccount];
-    } else if (exDirection === ExchangeDirection.SecondToFirst) {
-      if (this.ffMultiFetchModel.base !== this.secondCurrencyAccount) {
-        return console.warn('Wrong currency base - need re-fetch FX rates with new base');
-      }
-      this.firstAccountCalculation = this.secondAccountCalculation * this.ffMultiFetchModel.results[this.currentCurrencyAccount];
-    }
-  }
 }
-
-export default createContext(new ExchangeStore(ExchangeApiService));
+export const ExchangeStoreInstance = new ExchangeStore(ExchangeApiService);
+export default createContext(ExchangeStoreInstance);

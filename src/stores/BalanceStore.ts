@@ -11,7 +11,7 @@ export interface CalculationsPayload {
   amount: number;
 }
 
-class BalanceStore implements BalanceStoreState {
+export class BalanceStore implements BalanceStoreState {
   @observable balance: Map<CurrencyAccount, number> = new Map<CurrencyAccount, number>();
   constructor() {
     makeAutoObservable(this);
@@ -68,6 +68,11 @@ class BalanceStore implements BalanceStoreState {
     // API Request - Balance changing emulation
     this.calculateAmount(firstPayload.currency, firstPayload.amount * -coefficient);
     this.calculateAmount(secondPayload.currency, secondPayload.amount * coefficient);
+  }
+
+  // eslint-disable-next-line camelcase
+  @action test_deleteCurrency(currency: CurrencyAccount): void {
+    this.balance.delete(currency);
   }
 }
 
