@@ -8,7 +8,7 @@ export class ExchangeApiServiceClass extends ApiServiceClass implements IExchang
   fetchMulti(base: CurrencyAccount): Promise<FFMultiFetchModel> {
     const multiUrl = new URL(`${AppConfig.fxApi.domain}/fetch-multi`);
 
-    multiUrl.searchParams.append('api_key', '184dd26b7e-40272d77ff-qyjq5f');
+    multiUrl.searchParams.append('api_key', process.env.REACT_APP_FF_RATES_API || '');
     multiUrl.searchParams.append('from', base);
     multiUrl.searchParams.append('to', 'USD,EUR,GBP');
 

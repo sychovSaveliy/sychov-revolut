@@ -5,6 +5,10 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+if (process.env.REACT_APP_FF_RATES_API === '*') {
+  console.warn('No env variable');
+}
+
 ReactDOM.render(
   <React.StrictMode>
     <CssBaseline />

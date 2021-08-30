@@ -37,7 +37,7 @@ export class ExchangeStore implements ExchangeStoreState {
       //   GBP: 1.25
       // };
 
-      // this.loadFFRates();
+      this.loadFFRates();
     }, 1000 * 10);
   }
 
@@ -52,8 +52,12 @@ export class ExchangeStore implements ExchangeStoreState {
   @action loadFFRates(currencyAccount?: CurrencyAccount): Promise<void> {
     const currencyAccountLocal = currencyAccount || this.currentCurrencyAccount;
     return this.exchangeApiService.fetchMulti(currencyAccountLocal).then(ffResp => {
-      this.ffMultiFetchModel = ffResp;
+      this.setFFMultiFetchModel(ffResp);
     });
+  }
+
+  @action private setFFMultiFetchModel(data: FFMultiFetchModel | null): void {
+    this.ffMultiFetchModel = data;
   }
 
   @action resetStore(): void {
@@ -61,7 +65,7 @@ export class ExchangeStore implements ExchangeStoreState {
     this.secondCurrencyAccount = DEFAULT_TARGET_ACCOUNT;
     this.firstAccountCalculation = 0;
     this.secondAccountCalculation = 0;
-    this.ffMultiFetchModel = null;
+    this.setFFMultiFetchModel(null);
     clearInterval(this.intervalId);
   }
 
