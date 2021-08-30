@@ -103,7 +103,7 @@ export class ExchangeStore implements ExchangeStoreState {
     const currency = this.secondCurrencyAccount;
     const rateCoefficient = 1 / this.ffMultiFetchModel.results[currency];
 
-    this.firstAccountCalculation = this.secondAccountCalculation * rateCoefficient;
+    this.firstAccountCalculation = Number((this.secondAccountCalculation * rateCoefficient).toFixed(2));
   }
 
   private applyFXRatesToSecond(): void {
@@ -114,7 +114,7 @@ export class ExchangeStore implements ExchangeStoreState {
     const currency = this.secondCurrencyAccount;
     const rateCoefficient = this.ffMultiFetchModel.results[currency];
 
-    this.secondAccountCalculation = this.firstAccountCalculation * rateCoefficient;
+    this.secondAccountCalculation = Number((this.firstAccountCalculation * rateCoefficient).toFixed(2));
   }
 }
 export const ExchangeStoreInstance = new ExchangeStore(ExchangeApiService);
