@@ -61,7 +61,7 @@ describe('ExchangeStore', () => {
       store.updateCalculations(CurrencyAccount.USD, value);
 
       expect(store.firstAccountCalculation).toBe(value);
-      expect(store.secondAccountCalculation).toBe(value * coefficient);
+      expect(store.secondAccountCalculation).toBe(Number((value * coefficient).toFixed(2)));
     });
 
     it('should apply FX rates to first account', () => {
@@ -71,7 +71,7 @@ describe('ExchangeStore', () => {
 
       store.updateCalculations(CurrencyAccount.EUR, value);
 
-      expect(store.firstAccountCalculation).toBe(value * coefficient);
+      expect(store.firstAccountCalculation).toBe(Number((value * coefficient).toFixed(2)));
       expect(store.secondAccountCalculation).toBe(value);
     });
 
